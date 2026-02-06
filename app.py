@@ -5,7 +5,7 @@ import google.generativeai as genai
 st.set_page_config(page_title="LexiLevel - Chem Teacher Tool", layout="wide")
 
 # IMPORTANT: Paste your actual API Key from aistudio.google.com here
-API_KEY = "AIzaSyCsY3c_vINChuBJL00Rm5UlQkn1Sm-CDps"
+API_KEY = AIzaSyCsY3c_vINChuBJL00Rm5UlQkn1Sm-CDps
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
