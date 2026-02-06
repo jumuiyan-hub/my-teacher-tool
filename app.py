@@ -1,65 +1,96 @@
 import streamlit as st
 import google.generativeai as genai
 
-# 1. Setup & API Connection
-st.set_page_config(page_title="LexiLevel - Grade 10 Tool", layout="wide")
+# 1. Page Config (Wide mode creates the side-by-side look)
+st.set_page_config(page_title="LexiLevel - Chem Teacher Tool", layout="wide")
 
-# IMPORTANT: Replace with your actual key from aistudio.google.com
-API_KEY = "YOUR_GEMINI_API_KEY_HERE" 
+# IMPORTANT: Paste your actual API Key from aistudio.google.com here
+API_KEY = "YOUR_GEMINI_API_KEY_HERE"
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-# 2. Initialize "Memory" (Session State)
-if 'result' not in st.session_state:
-    st.session_state.result = ""
+# 2. Memory Bank (Prevents content from disappearing on rerun)
+if 'teacher_notes' not in st.session_state:
+    st.session_state.teacher_notes = ""
 
-# 3. Custom CSS for the Dashboard Look
+# 3. Teacher Handout Styling (CSS)
 st.markdown("""
     <style>
-    .stTextArea textarea { font-size: 1.1rem !important; }
-    .stButton>button { background-color: #4F46E5; color: white; border-radius: 8px; height: 3em; width: 100%; }
-    .output-box { background-color: #ffffff; padding: 25px; border-radius: 10px; border: 1px solid #e0e0e0; font-size: 1.1rem; line-height: 1.6; }
+    .teacher-paper {
+        background-color: #ffffff;
+        padding: 30px;
+        border: 1px solid #d1d5db;
+        border-top: 10px solid #4F46E5;
+        border-radius: 8px;
+        color: #1f2937;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .stTextArea textarea { font-size: 1rem !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 4. Sidebar Analysis
-with st.sidebar:
-    st.title("📊 Analysis")
-    st.metric("Target", "Grade 10")
-    st.write("**Rules Applied:**")
-    st.caption("✅ Active Voice\n✅ Formal Tone\n✅ Bracketed Definitions")
+# 4. Header Section
+st.title("🍎 LexiLevel: Teacher Note Generator")
+st.markdown("Convert dense textbooks into **human-sounding** notes for Grade 10 Chemistry.")
 
-# 5. Main Interface
-st.title("🎓 Grade 10 Scholar Tool")
-
-user_input = st.text_area("Paste Original Passage:", height=200, placeholder="Paste your text here...")
-
-# Button Logic
-col1, col2, col3 = st.columns(3)
-
-def run_ai(instruction):
-    if not user_input:
-        st.warning("Please paste some text first!")
-        return
-    full_prompt = f"{instruction}\n\nTEXT TO PROCESS:\n{user_input}"
-    with st.spinner("Processing..."):
-        response = model.generate_content(full_prompt)
-        st.session_state.result = response.text
+# 5. Side-by-Side Interface
+col1, col2 = st.columns([1, 1], gap="medium")
 
 with col1:
-    if st.button("✨ Formal Paraphrase"):
-        run_ai("Rewrite this for a Grade 10 level. Use an active, formal, academic voice. Use brackets [definition] to define any complex technical terms immediately after they appear.")
+    st.subheader("📝 Original Textbook Text")
+    user_input = st.text_area(
+        "Paste the passage from the curriculum or book:",
+        height=350,
+        placeholder="Paste here (e.g., information about exothermic reactions or periodic trends)..."
+    )
+    
+    # Button to trigger AI
+    if st.button("✨ Generate Grade 10 Notes", use_container_width=True):
+        if user_input:
+            teacher_prompt = f"""
+            You are a helpful, formal, and clear Grade 10 Chemistry teacher. 
+            Rewrite the following text as study notes for your 15-year-old students.
+            
+            STRICT RULES:
+            - Use ACTIVE VOICE (e.g., 'The atom loses an electron' instead of 'An electron is lost').
+            - Maintain a FORMAL but encouraging teacher persona.
+            - Provide context for hard words: Define complex terms in brackets [like this] immediately after they appear.
+            - Use bullet points for key concepts.
+            - End with a one-sentence 'Key Takeaway'.
+            
+            TEXT TO CONVERT:
+            {user_input}
+            """
+            with st.spinner("Writing your notes..."):
+                response = model.generate_content(teacher_prompt)
+                st.session_state.teacher_notes = response.text
+        else:
+            st.warning("Please paste some text first!")
 
 with col2:
-    if st.button("📚 Vocab Glossary"):
-        run_ai("Identify 5 complex words from the text. Provide a formal definition for each in a list format.")
+    st.subheader("💡 Teacher's Version")
+    
+    if st.session_state.teacher_notes:
+        # Displaying the stylized note
+        st.markdown(f'<div class="teacher-paper">{st.session_state.teacher_notes}</div>', unsafe_allow_html=True)
+        
+        # Download Option
+        st.divider()
+        st.download_button(
+            label="💾 Download Notes as .txt",
+            data=st.session_state.teacher_notes,
+            file_name="Grade_10_Chem_Notes.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+    else:
+        st.info("Your simplified teacher's notes will appear here. They will include bracketed definitions and active voice formatting.")
 
-with col3:
-    if st.button("❓ Comprehension"):
-        run_ai("Create 3 formal multiple-choice questions based on this text to check for student understanding.")
-
-# 6. Persistent Output Section
-if st.session_state.result:
+# 6. Sidebar Reference
+with st.sidebar:
+    st.header("⚙️ Tool Settings")
+    st.write("**Subject:** Chemistry")
+    st.write("**Level:** Grade 10 (Form 4)")
     st.divider()
-    st.subheader("Result")
-    st.markdown(f'<div class="output-box">{st.session_state.result}</div>', unsafe_allow_html=True)
+    st.caption("This tool uses Gemini 1.5 Flash to ensure scientific accuracy while maintaining a human-like teaching tone.")
